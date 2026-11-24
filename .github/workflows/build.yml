@@ -1,4 +1,50 @@
-name: Build HealthBridge Debug APK
+namename: Build HealthBridge Debug APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Assemble Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle 9.3.1
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: 9.3.1
+
+      - name: Patch SleepStage reference for Samsung SDK 1.1.0
+        run: |
+          sed -i '/com.samsung.android.sdk.health.data.data.SleepStage/d' app/src/main/java/com/example/bridge/SamsungSdkAdapter.kt
+          sed -i 's/SleepStage\.StageType/DataType.SleepType.StageType/g' app/src/main/java/com/example/bridge/SamsungSdkAdapter.kt
+
+      - name: Generate ephemeral debug keystore for CI
+        run: test -f debug.keystore || keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Build Debug APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: healthbridge-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+ Build HealthBridge Debug APK
 
 on:
   push:
