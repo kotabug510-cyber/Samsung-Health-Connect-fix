@@ -10,6 +10,7 @@ import com.samsung.android.sdk.health.data.data.SkinTemperatureSeries
 import com.samsung.android.sdk.health.data.data.SleepSession
 import com.samsung.android.sdk.health.data.data.UserDataPoint
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 enum class Ordering {
@@ -34,6 +35,25 @@ class LocalTimeGroup private constructor(
         @JvmStatic
         fun of(unit: LocalTimeGroupUnit, multiplier: Int): LocalTimeGroup =
             LocalTimeGroup(unit, multiplier)
+    }
+}
+
+class LocalDateFilter private constructor(
+    val startDate: LocalDate?,
+    val endDate: LocalDate?
+) {
+    companion object {
+        @JvmStatic
+        fun of(startDate: LocalDate, endDate: LocalDate): LocalDateFilter =
+            LocalDateFilter(startDate, endDate)
+
+        @JvmStatic
+        fun since(startDate: LocalDate): LocalDateFilter =
+            LocalDateFilter(startDate, null)
+
+        @JvmStatic
+        fun to(endDate: LocalDate): LocalDateFilter =
+            LocalDateFilter(null, endDate)
     }
 }
 
@@ -77,6 +97,14 @@ class ReadDataRequest<T : DataPoint> internal constructor() {
         fun setOrdering(ordering: Ordering): DualTimeBuilder<T> = this
         fun setPageSize(pageSize: Int): DualTimeBuilder<T> = this
         fun setPageToken(token: String?): DualTimeBuilder<T> = this
+        fun build(): ReadDataRequest<T> = ReadDataRequest()
+    }
+
+    open class LocalDateBuilder<T : DataPoint> {
+        fun setLocalDateFilter(filter: LocalDateFilter): LocalDateBuilder<T> = this
+        fun setOrdering(ordering: Ordering): LocalDateBuilder<T> = this
+        fun setPageSize(pageSize: Int): LocalDateBuilder<T> = this
+        fun setPageToken(token: String?): LocalDateBuilder<T> = this
         fun build(): ReadDataRequest<T> = ReadDataRequest()
     }
 
@@ -191,7 +219,6 @@ sealed class DataType(val name: String) {
             @JvmField val EXERCISE_TYPE = Field<PredefinedExerciseType>("exercise_type")
             @JvmField val SESSIONS = Field<List<ExerciseSession>>("sessions")
             @JvmField val CUSTOM_TITLE = Field<String>("custom_title")
-            @JvmField val CALORIES = Field<Float>("calories")
         }
     }
 
@@ -370,12 +397,12 @@ sealed class DataType(val name: String) {
         }
     }
 
-    class EnergyScoreType : Readable<HealthDataPoint, ReadDataRequest.DualTimeBuilder<HealthDataPoint>>(
+    class EnergyScoreType : Readable<HealthDataPoint, ReadDataRequest.LocalDateBuilder<HealthDataPoint>>(
         "energy_score",
-        { ReadDataRequest.DualTimeBuilder() }
+        { ReadDataRequest.LocalDateBuilder() }
     ) {
         companion object {
-            @JvmField val ENERGY_SCORE = Field<Int>("energy_score")
+            @JvmField val ENERGY_SCORE = Field<Float>("energy_score")
         }
     }
 

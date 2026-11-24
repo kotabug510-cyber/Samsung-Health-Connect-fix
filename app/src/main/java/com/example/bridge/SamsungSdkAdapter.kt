@@ -35,11 +35,13 @@ import com.samsung.android.sdk.health.data.permission.AccessType
 import com.samsung.android.sdk.health.data.permission.Permission
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.DataTypes
+import com.samsung.android.sdk.health.data.request.LocalDateFilter
 import com.samsung.android.sdk.health.data.request.LocalTimeFilter
 import com.samsung.android.sdk.health.data.request.LocalTimeGroup
 import com.samsung.android.sdk.health.data.request.LocalTimeGroupUnit
 import com.samsung.android.sdk.health.data.request.Ordering
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -234,7 +236,7 @@ class SamsungSdkAdapter(private val context: Context) {
         store.aggregateData(request).dataList.mapNotNull { item ->
             val count = item.value ?: 0L
             if (count <= 0L) return@mapNotNull null
-            val offset = item.zoneOffset ?: zone.rules.getOffset(item.startTime)
+            val offset = zone.rules.getOffset(item.startTime)
             SamsungHourlyStepBucket(
                 startTime = item.startTime,
                 endTime = item.endTime,
@@ -280,8 +282,7 @@ class SamsungSdkAdapter(private val context: Context) {
             val active = activeCalByStart[start]
             val total = totalCalByStart[start]
             val end = dist?.endTime ?: active?.endTime ?: total?.endTime ?: start.plusSeconds(3600)
-            val offset = dist?.zoneOffset ?: active?.zoneOffset ?: total?.zoneOffset
-                ?: zone.rules.getOffset(start)
+            val offset = zone.rules.getOffset(start)
             val dVal = dist?.value?.toDouble()?.takeIf { it > 0.0 }
             val aVal = active?.value?.toDouble()?.takeIf { it > 0.0 }
             val tVal = total?.value?.toDouble()?.takeIf { it > 0.0 }
@@ -352,7 +353,7 @@ class SamsungSdkAdapter(private val context: Context) {
                         samsungExerciseTypeName = point.getValue(DataType.ExerciseType.EXERCISE_TYPE)?.name
                             ?: "CUSTOM",
                         title = point.getValue(DataType.ExerciseType.CUSTOM_TITLE),
-                        caloriesKcal = point.getValue(DataType.ExerciseType.CALORIES)?.toDouble(),
+                        caloriesKcal = null,
                         distanceMeters = null,
                         meanSpeedMetersPerSec = null,
                         maxSpeedMetersPerSec = null,
@@ -627,7 +628,7 @@ class SamsungSdkAdapter(private val context: Context) {
         val request = DataTypes.USER_PROFILE.readDataRequestBuilder.build()
         val profile = store.readData(request).dataList.firstOrNull() ?: return@wrapSdkCall null
         SamsungUserProfile(
-            uid = profile.uid,
+            uid = "samsung_user_profile",
             heightCm = profile.getValue(DataType.UserProfileDataType.HEIGHT)?.toDouble(),
             weightKg = profile.getValue(DataType.UserProfileDataType.WEIGHT)?.toDouble(),
             nickname = profile.getValue(DataType.UserProfileDataType.NICKNAME)
@@ -697,13 +698,14 @@ class SamsungSdkAdapter(private val context: Context) {
     suspend fun readSamsungExclusiveMetrics(): SamsungExclusiveMetrics = wrapSdkCall {
         val store = requireStore()
         val now = LocalDateTime.now()
-        val last7Days = LocalTimeFilter.of(now.minusDays(7), now)
+        val today = LocalDate.now()
+        val last7DaysDateFilter = LocalDateFilter.of(today.minusDays(7), today)
         val last30Days = LocalTimeFilter.of(now.minusDays(30), now)
 
         val latestEnergy = runCatching {
             store.readData(
                 DataTypes.ENERGY_SCORE.readDataRequestBuilder
-                    .setLocalTimeFilter(last7Days)
+                    .setLocalDateFilter(last7DaysDateFilter)
                     .setOrdering(Ordering.DESC)
                     .build()
             ).dataList.firstOrNull()
@@ -749,7 +751,7 @@ class SamsungSdkAdapter(private val context: Context) {
         }
 
         SamsungExclusiveMetrics(
-            energyScore = latestEnergy?.getValue(DataType.EnergyScoreType.ENERGY_SCORE),
+            energyScore = latestEnergy?.getValue(DataType.EnergyScoreType.ENERGY_SCORE)?.toInt(),
             energyScoreTimestampEpochMs = latestEnergy?.startTime?.toEpochMilli(),
             sleepApneaStatus = apneaLabel,
             sleepApneaTimestampEpochMs = latestApnea?.startTime?.toEpochMilli(),
@@ -802,8 +804,8 @@ class SamsungSdkAdapter(private val context: Context) {
         }
     }
 
-    private fun isDeveloperModeErrorMessage(message: String, errorCode: Int): Boolean {
-        val lower = message.lowercase()
+    private fun isDeveloperModeErrorMessage(message: String?, errorCode: Int?): Boolean {
+        val lower = message.orEmpty().lowercase()
         return lower.contains("developer") ||
             lower.contains("not authorized") ||
             lower.contains("access denied") ||

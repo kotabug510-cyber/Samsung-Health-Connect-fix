@@ -32,8 +32,7 @@ class AggregatedData<T>(
     val startTime: Instant = Instant.EPOCH,
     val endTime: Instant = Instant.EPOCH,
     val startLocalDateTime: LocalDateTime = LocalDateTime.MIN,
-    val endLocalDateTime: LocalDateTime = LocalDateTime.MIN,
-    val zoneOffset: ZoneOffset? = null
+    val endLocalDateTime: LocalDateTime = LocalDateTime.MIN
 )
 
 class AssociatedDataPoints(
@@ -47,10 +46,9 @@ class DataResponse<T>(
     val pageToken: String? = null
 )
 
-class UserDataPoint(
-    val uid: String = ""
-) : DataPoint {
+class UserDataPoint : DataPoint {
     fun <T> getValue(field: Field<T>): T? = null
+    fun <T> getValueOrDefault(field: Field<T>, defaultValue: T): T = defaultValue
 }
 
 // Nested entry classes in Samsung Health Data SDK 1.1.0
