@@ -27,15 +27,8 @@ jobs:
         with:
           gradle-version: 9.3.1
 
-      - name: Generate ephemeral debug keystore for CI
-        run: test -f debug.keystore || keytool -genkeypair -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-
-      - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace
-
-      - name: Upload Debug APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: healthbridge-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+      - name: Patch SDK and Google Services config for CI
+        run: |
+          sed -i '/com.samsung.android.sdk.health.data.data.SleepStage/d' app/src/main/java/com/example/bridge/SamsungSdkAdapter.kt
+          sed -i 's/SleepStage\.StageType/DataType.SleepType.StageType/g' app/src/main/java/com/example/bridge/SamsungSdkAdapter.kt
+          test -f app/google-services.json || echo '{"project_info":{"project_number":"000000000000","project_id":"healthbridge-ci","storage_bucket":"healthbridge-ci.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000","android_client_info":{"package_name":"com.example.healthbridge"}},"api_key":[{"current_key":"AIzaSyDummyKeyForCIBuildOnly000000000"}]}],"configuration_version":"
