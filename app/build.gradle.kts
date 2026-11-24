@@ -80,14 +80,17 @@ secrets {
 
 googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN }
 
-val samsungHealthLibs = fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar")))
+val hasSamsungHealthAar =
+  fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))).files.any {
+    it.name.contains("samsung-health-data", ignoreCase = true)
+  }
 
 // Some unused dependencies are commented out below instead of being removed.
 // This makes it easy to add them back in the future if needed.
 dependencies {
   // Samsung Health Data SDK AAR (place samsung-health-data-api-1.1.0.aar in app/libs/)
-  implementation(samsungHealthLibs)
-  if (samsungHealthLibs.files.none { it.name.contains("samsung-health-data", ignoreCase = true) }) {
+  implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))))
+  if (!hasSamsungHealthAar) {
     compileOnly(project(":samsung-sdk-stubs"))
   }
 

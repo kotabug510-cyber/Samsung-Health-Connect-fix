@@ -28,7 +28,6 @@ import com.example.model.SamsungWaterIntakeSample
 import com.example.model.SyncCategory
 import com.samsung.android.sdk.health.data.HealthDataService
 import com.samsung.android.sdk.health.data.HealthDataStore
-import com.samsung.android.sdk.health.data.data.SleepStage
 import com.samsung.android.sdk.health.data.error.AuthorizationException
 import com.samsung.android.sdk.health.data.error.HealthDataException
 import com.samsung.android.sdk.health.data.error.ResolvablePlatformException
@@ -36,7 +35,6 @@ import com.samsung.android.sdk.health.data.permission.AccessType
 import com.samsung.android.sdk.health.data.permission.Permission
 import com.samsung.android.sdk.health.data.request.DataType
 import com.samsung.android.sdk.health.data.request.DataTypes
-import com.samsung.android.sdk.health.data.request.IdFilter
 import com.samsung.android.sdk.health.data.request.LocalTimeFilter
 import com.samsung.android.sdk.health.data.request.LocalTimeGroup
 import com.samsung.android.sdk.health.data.request.LocalTimeGroupUnit
@@ -263,7 +261,7 @@ class SamsungSdkAdapter(private val context: Context) {
         ).dataList.associateBy { it.startTime }
 
         val activeCalByStart = store.aggregateData(
-            DataType.ActivitySummaryType.ACTIVE_CALORIES_BURNED.requestBuilder
+            DataType.ActivitySummaryType.TOTAL_ACTIVE_CALORIES_BURNED.requestBuilder
                 .setLocalTimeFilterWithGroup(filter, group)
                 .setOrdering(Ordering.ASC)
                 .build()
@@ -313,7 +311,6 @@ class SamsungSdkAdapter(private val context: Context) {
         val exercisePoints = store.readData(request).dataList
         exercisePoints.flatMap { point ->
             val offset = point.zoneOffset ?: zone.rules.getOffset(point.startTime)
-            val associatedGps = fetchAssociatedExerciseRoute(store, point.uid)
             val sessions = point.getValue(DataType.ExerciseType.SESSIONS)
 
             if (!sessions.isNullOrEmpty()) {
@@ -323,10 +320,10 @@ class SamsungSdkAdapter(private val context: Context) {
                             timestamp = loc.timestamp,
                             latitude = loc.latitude.toDouble(),
                             longitude = loc.longitude.toDouble(),
-                            altitudeMeters = loc.altitude.toDouble(),
-                            accuracyMeters = loc.accuracy.toDouble()
+                            altitudeMeters = loc.altitude?.toDouble(),
+                            accuracyMeters = loc.accuracy?.toDouble()
                         )
-                    }.orEmpty().ifEmpty { associatedGps }
+                    }.orEmpty()
 
                     SamsungExerciseRecord(
                         uid = if (sessions.size == 1) point.uid else "${point.uid}_$idx",
@@ -336,11 +333,11 @@ class SamsungSdkAdapter(private val context: Context) {
                         samsungExerciseTypeName = session.exerciseType.name,
                         title = session.customTitle ?: point.getValue(DataType.ExerciseType.CUSTOM_TITLE),
                         caloriesKcal = session.calories.toDouble().takeIf { it > 0.0 },
-                        distanceMeters = session.distance.toDouble().takeIf { it > 0.0 },
-                        meanSpeedMetersPerSec = session.meanSpeed.toDouble().takeIf { it > 0.0 },
-                        maxSpeedMetersPerSec = session.maxSpeed.toDouble().takeIf { it > 0.0 },
-                        elevationGainMeters = session.altitudeGain.toDouble().takeIf { it > 0.0 },
-                        vo2Max = session.vo2Max.toDouble().takeIf { it > 0.0 },
+                        distanceMeters = session.distance?.toDouble()?.takeIf { it > 0.0 },
+                        meanSpeedMetersPerSec = session.meanSpeed?.toDouble()?.takeIf { it > 0.0 },
+                        maxSpeedMetersPerSec = session.maxSpeed?.toDouble()?.takeIf { it > 0.0 },
+                        elevationGainMeters = session.altitudeGain?.toDouble()?.takeIf { it > 0.0 },
+                        vo2Max = session.vo2Max?.toDouble()?.takeIf { it > 0.0 },
                         routePoints = sessionRoute
                     )
                 }
@@ -356,60 +353,17 @@ class SamsungSdkAdapter(private val context: Context) {
                             ?: "CUSTOM",
                         title = point.getValue(DataType.ExerciseType.CUSTOM_TITLE),
                         caloriesKcal = point.getValue(DataType.ExerciseType.CALORIES)?.toDouble(),
-                        distanceMeters = point.getValue(DataType.ExerciseType.DISTANCE)?.toDouble(),
-                        meanSpeedMetersPerSec = point.getValue(DataType.ExerciseType.MEAN_SPEED)?.toDouble(),
-                        maxSpeedMetersPerSec = point.getValue(DataType.ExerciseType.MAX_SPEED)?.toDouble(),
-                        elevationGainMeters = point.getValue(DataType.ExerciseType.ALTITUDE_GAIN)?.toDouble(),
-                        vo2Max = point.getValue(DataType.ExerciseType.VO2_MAX)?.toDouble(),
-                        routePoints = associatedGps
+                        distanceMeters = null,
+                        meanSpeedMetersPerSec = null,
+                        maxSpeedMetersPerSec = null,
+                        elevationGainMeters = null,
+                        vo2Max = null,
+                        routePoints = emptyList()
                     )
                 )
             }
         }
     }
-
-    private suspend fun fetchAssociatedExerciseRoute(
-        store: HealthDataStore,
-        exerciseUid: String
-    ): List<SamsungGpsPoint> = runCatching {
-        val assocReq = DataTypes.EXERCISE.associatedReadRequestBuilder
-            .setIdFilter(IdFilter.fromDataUid(exerciseUid))
-            .addAssociatedDataType(DataType.ExerciseType.Associates.EXERCISE_LOCATION)
-            .build()
-
-        store.readAssociatedData(assocReq).dataList.flatMap { assoc ->
-            assoc.getDataPointOf(DataTypes.EXERCISE_LOCATION).orEmpty().flatMap { locPoint ->
-                val list = locPoint.getValue(DataType.ExerciseLocationType.LOCATION_DATA)
-                if (!list.isNullOrEmpty()) {
-                    list.map { l ->
-                        SamsungGpsPoint(
-                            timestamp = l.timestamp,
-                            latitude = l.latitude.toDouble(),
-                            longitude = l.longitude.toDouble(),
-                            altitudeMeters = l.altitude.toDouble(),
-                            accuracyMeters = l.accuracy.toDouble()
-                        )
-                    }
-                } else {
-                    val lat = locPoint.getValue(DataType.ExerciseLocationType.LATITUDE)?.toDouble()
-                    val lon = locPoint.getValue(DataType.ExerciseLocationType.LONGITUDE)?.toDouble()
-                    if (lat != null && lon != null) {
-                        listOf(
-                            SamsungGpsPoint(
-                                timestamp = locPoint.startTime,
-                                latitude = lat,
-                                longitude = lon,
-                                altitudeMeters = locPoint.getValue(DataType.ExerciseLocationType.ALTITUDE)?.toDouble(),
-                                accuracyMeters = locPoint.getValue(DataType.ExerciseLocationType.ACCURACY)?.toDouble()
-                            )
-                        )
-                    } else {
-                        emptyList()
-                    }
-                }
-            }
-        }
-    }.getOrDefault(emptyList())
 
     suspend fun readFloorsClimbed(
         startLocal: LocalDateTime,
@@ -454,10 +408,11 @@ class SamsungSdkAdapter(private val context: Context) {
                         startTime = st.startTime,
                         endTime = st.endTime,
                         kind = when (st.stage) {
-                            SleepStage.StageType.AWAKE -> SamsungSleepStageKind.AWAKE
-                            SleepStage.StageType.LIGHT -> SamsungSleepStageKind.LIGHT
-                            SleepStage.StageType.DEEP -> SamsungSleepStageKind.DEEP
-                            SleepStage.StageType.REM -> SamsungSleepStageKind.REM
+                            DataType.SleepType.StageType.AWAKE -> SamsungSleepStageKind.AWAKE
+                            DataType.SleepType.StageType.LIGHT -> SamsungSleepStageKind.LIGHT
+                            DataType.SleepType.StageType.DEEP -> SamsungSleepStageKind.DEEP
+                            DataType.SleepType.StageType.REM -> SamsungSleepStageKind.REM
+                            DataType.SleepType.StageType.UNDEFINED, null -> SamsungSleepStageKind.UNKNOWN
                             else -> SamsungSleepStageKind.UNKNOWN
                         }
                     )
@@ -673,9 +628,9 @@ class SamsungSdkAdapter(private val context: Context) {
         val profile = store.readData(request).dataList.firstOrNull() ?: return@wrapSdkCall null
         SamsungUserProfile(
             uid = profile.uid,
-            heightCm = profile.getValue(DataType.UserProfileType.HEIGHT)?.toDouble(),
-            weightKg = profile.getValue(DataType.UserProfileType.WEIGHT)?.toDouble(),
-            nickname = profile.getValue(DataType.UserProfileType.NICKNAME)
+            heightCm = profile.getValue(DataType.UserProfileDataType.HEIGHT)?.toDouble(),
+            weightKg = profile.getValue(DataType.UserProfileDataType.WEIGHT)?.toDouble(),
+            nickname = profile.getValue(DataType.UserProfileDataType.NICKNAME)
         )
     }
 
@@ -730,7 +685,7 @@ class SamsungSdkAdapter(private val context: Context) {
                 sugarGrams = pt.getValue(DataType.NutritionType.SUGAR)?.toDouble(),
                 sodiumMg = pt.getValue(DataType.NutritionType.SODIUM)?.toDouble(),
                 cholesterolMg = pt.getValue(DataType.NutritionType.CHOLESTEROL)?.toDouble(),
-                caffeineMg = pt.getValue(DataType.NutritionType.CAFFEINE)?.toDouble()
+                caffeineMg = null
             )
         }
     }
@@ -773,21 +728,22 @@ class SamsungSdkAdapter(private val context: Context) {
         }.getOrDefault(emptyList())
 
         val apneaLabel = latestApnea?.let { pt ->
-            pt.getValue(DataType.SleepApneaType.STATUS)
-                ?: when (pt.getValue(DataType.SleepApneaType.DETECTION_RESULT)) {
-                    DataType.SleepApneaType.DetectionResult.NO_SIGNS -> "No signs detected"
-                    DataType.SleepApneaType.DetectionResult.SIGNS_DETECTED -> "Signs detected"
-                    DataType.SleepApneaType.DetectionResult.INCONCLUSIVE -> "Inconclusive"
-                    else -> "Monitoring active"
-                }
+            when (pt.getValue(DataType.SleepApneaType.DETECTED_SIGN)) {
+                DataType.SleepApneaType.DetectedSign.DETECTED -> "Signs detected"
+                DataType.SleepApneaType.DetectedSign.NOT_DETECTED -> "No signs detected"
+                DataType.SleepApneaType.DetectedSign.UNDEFINED, null -> "Monitoring active"
+                else -> "Monitoring active"
+            }
         }
 
-        val totalIhrnCount = ihrnEvents.sumOf { pt ->
-            pt.getValue(DataType.IrregularHeartRhythmNotificationType.EVENT_COUNT) ?: 1
+        val detectedIhrnEvents = ihrnEvents.filter { pt ->
+            pt.getValue(DataType.IrregularHeartRhythmNotificationType.STATUS) ==
+                DataType.IrregularHeartRhythmNotificationType.IrregularHeartRhythmStatus.DETECTED
         }
-        val latestIhrn = ihrnEvents.firstOrNull()
+        val totalIhrnCount = detectedIhrnEvents.size
+        val latestIhrn = detectedIhrnEvents.firstOrNull() ?: ihrnEvents.firstOrNull()
         val ihrnLabel = when {
-            ihrnEvents.isEmpty() -> "No irregular rhythms (30d)"
+            totalIhrnCount == 0 -> "No irregular rhythms (30d)"
             totalIhrnCount == 1 -> "1 alert detected (30d)"
             else -> "$totalIhrnCount alerts detected (30d)"
         }

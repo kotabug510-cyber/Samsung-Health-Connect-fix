@@ -59,33 +59,25 @@ data class SleepSession(
     val startTime: Instant = Instant.EPOCH,
     val endTime: Instant = Instant.EPOCH,
     val stages: List<SleepStage>? = null
-)
-
-data class SleepStage(
-    val startTime: Instant = Instant.EPOCH,
-    val endTime: Instant = Instant.EPOCH,
-    val stage: StageType = StageType.UNDEFINED
 ) {
-    enum class StageType {
-        UNDEFINED,
-        AWAKE,
-        LIGHT,
-        DEEP,
-        REM
-    }
+    data class SleepStage(
+        val startTime: Instant = Instant.EPOCH,
+        val endTime: Instant = Instant.EPOCH,
+        val stage: DataType.SleepType.StageType = DataType.SleepType.StageType.UNDEFINED
+    )
 }
 
 data class ExerciseSession(
     val startTime: Instant = Instant.EPOCH,
     val endTime: Instant = Instant.EPOCH,
-    val exerciseType: com.samsung.android.sdk.health.data.request.DataType.ExerciseType.PredefinedExerciseType =
-        com.samsung.android.sdk.health.data.request.DataType.ExerciseType.PredefinedExerciseType.CUSTOM,
+    val exerciseType: DataType.ExerciseType.PredefinedExerciseType =
+        DataType.ExerciseType.PredefinedExerciseType.CUSTOM,
     val calories: Float = 0f,
-    val distance: Float = 0f,
-    val meanSpeed: Float = 0f,
-    val maxSpeed: Float = 0f,
-    val altitudeGain: Float = 0f,
-    val vo2Max: Float = 0f,
+    val distance: Float? = null,
+    val meanSpeed: Float? = null,
+    val maxSpeed: Float? = null,
+    val altitudeGain: Float? = null,
+    val vo2Max: Float? = null,
     val customTitle: String? = null,
     val route: List<ExerciseLocation>? = null
 )
@@ -94,8 +86,8 @@ data class ExerciseLocation(
     val timestamp: Instant = Instant.EPOCH,
     val latitude: Float = 0f,
     val longitude: Float = 0f,
-    val altitude: Float = 0f,
-    val accuracy: Float = 0f
+    val altitude: Float? = null,
+    val accuracy: Float? = null
 )
 
 data class SkinTemperatureSeries(

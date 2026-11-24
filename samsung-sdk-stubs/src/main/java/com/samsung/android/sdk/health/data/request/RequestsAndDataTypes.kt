@@ -157,8 +157,8 @@ sealed class DataType(val name: String) {
                 { AggregateRequest.DualTimeBuilder() }
             )
             @JvmField
-            val ACTIVE_CALORIES_BURNED = AggregateOperation<Float, AggregateRequest.DualTimeBuilder<Float>>(
-                "active_calories_burned",
+            val TOTAL_ACTIVE_CALORIES_BURNED = AggregateOperation<Float, AggregateRequest.DualTimeBuilder<Float>>(
+                "total_active_calories_burned",
                 { AggregateRequest.DualTimeBuilder() }
             )
         }
@@ -187,38 +187,18 @@ sealed class DataType(val name: String) {
             HIGH_INTENSITY_INTERVAL_TRAINING
         }
 
-        val associatedReadRequestBuilder: AssociatedReadRequest.Builder
-            get() = AssociatedReadRequest.Builder()
-
-        object Associates {
-            @JvmField val EXERCISE_LOCATION = AssociateType("exercise_location")
-        }
-
         companion object {
             @JvmField val EXERCISE_TYPE = Field<PredefinedExerciseType>("exercise_type")
             @JvmField val SESSIONS = Field<List<ExerciseSession>>("sessions")
             @JvmField val CUSTOM_TITLE = Field<String>("custom_title")
             @JvmField val CALORIES = Field<Float>("calories")
-            @JvmField val DISTANCE = Field<Float>("distance")
-            @JvmField val MEAN_SPEED = Field<Float>("mean_speed")
-            @JvmField val MAX_SPEED = Field<Float>("max_speed")
-            @JvmField val ALTITUDE_GAIN = Field<Float>("altitude_gain")
-            @JvmField val VO2_MAX = Field<Float>("vo2_max")
         }
     }
 
     class ExerciseLocationType : Readable<HealthDataPoint, ReadDataRequest.DualTimeBuilder<HealthDataPoint>>(
         "exercise_location",
         { ReadDataRequest.DualTimeBuilder() }
-    ) {
-        companion object {
-            @JvmField val LOCATION_DATA = Field<List<ExerciseLocation>>("location_data")
-            @JvmField val LATITUDE = Field<Float>("latitude")
-            @JvmField val LONGITUDE = Field<Float>("longitude")
-            @JvmField val ALTITUDE = Field<Float>("altitude")
-            @JvmField val ACCURACY = Field<Float>("accuracy")
-        }
-    }
+    )
 
     class FloorsClimbedType : Readable<HealthDataPoint, ReadDataRequest.DualTimeBuilder<HealthDataPoint>>(
         "floors_climbed",
@@ -233,6 +213,14 @@ sealed class DataType(val name: String) {
         "sleep",
         { ReadDataRequest.DualTimeBuilder() }
     ) {
+        enum class StageType {
+            UNDEFINED,
+            AWAKE,
+            LIGHT,
+            DEEP,
+            REM
+        }
+
         val associatedReadRequestBuilder: AssociatedReadRequest.Builder
             get() = AssociatedReadRequest.Builder()
 
@@ -333,7 +321,7 @@ sealed class DataType(val name: String) {
         }
     }
 
-    class UserProfileType : Readable<UserDataPoint, ReadDataRequest.BasicBuilder<UserDataPoint>>(
+    class UserProfileDataType : Readable<UserDataPoint, ReadDataRequest.BasicBuilder<UserDataPoint>>(
         "user_profile",
         { ReadDataRequest.BasicBuilder() }
     ) {
@@ -379,7 +367,6 @@ sealed class DataType(val name: String) {
             @JvmField val SUGAR = Field<Float>("sugar")
             @JvmField val SODIUM = Field<Float>("sodium")
             @JvmField val CHOLESTEROL = Field<Float>("cholesterol")
-            @JvmField val CAFFEINE = Field<Float>("caffeine")
         }
     }
 
@@ -396,16 +383,14 @@ sealed class DataType(val name: String) {
         "sleep_apnea",
         { ReadDataRequest.DualTimeBuilder() }
     ) {
-        enum class DetectionResult {
+        enum class DetectedSign {
             UNDEFINED,
-            NO_SIGNS,
-            SIGNS_DETECTED,
-            INCONCLUSIVE
+            NOT_DETECTED,
+            DETECTED
         }
 
         companion object {
-            @JvmField val DETECTION_RESULT = Field<DetectionResult>("detection_result")
-            @JvmField val STATUS = Field<String>("status")
+            @JvmField val DETECTED_SIGN = Field<DetectedSign>("detected_sign")
         }
     }
 
@@ -414,11 +399,15 @@ sealed class DataType(val name: String) {
             "irregular_heart_rhythm_notification",
             { ReadDataRequest.DualTimeBuilder() }
         ) {
+        enum class IrregularHeartRhythmStatus {
+            UNDEFINED,
+            DETECTED
+        }
+
         companion object {
-            @JvmField val EVENT_COUNT = Field<Int>("event_count")
+            @JvmField val STATUS = Field<IrregularHeartRhythmStatus>("status")
             @JvmField val MIN_HEART_RATE = Field<Float>("min_heart_rate")
             @JvmField val MAX_HEART_RATE = Field<Float>("max_heart_rate")
-            @JvmField val MESSAGE = Field<String>("message")
         }
     }
 }
@@ -437,7 +426,7 @@ object DataTypes {
     @JvmField val BLOOD_PRESSURE = DataType.BloodPressureType()
     @JvmField val BLOOD_GLUCOSE = DataType.BloodGlucoseType()
     @JvmField val BODY_COMPOSITION = DataType.BodyCompositionType()
-    @JvmField val USER_PROFILE = DataType.UserProfileType()
+    @JvmField val USER_PROFILE = DataType.UserProfileDataType()
     @JvmField val WATER_INTAKE = DataType.WaterIntakeType()
     @JvmField val NUTRITION = DataType.NutritionType()
     @JvmField val ENERGY_SCORE = DataType.EnergyScoreType()
