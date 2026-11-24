@@ -27,26 +27,11 @@ jobs:
         with:
           gradle-version: 9.3.1
 
+      - name: Patch SleepStage reference for Samsung SDK 1.1.0
+        run: |
+          sed -i '/com.samsung.android.sdk.health.data.data.SleepStage/d' app/src/main/java/com/example/bridge/SamsungSdkAdapter.kt
+          sed -i 's/SleepStage\.StageType/DataType.SleepType.StageType/g' app/src/main/java/com/example/bridge/SamsungSdkAdapter.kt
+
       - name: Generate ephemeral debug keystore for CI
         run: |
-          if [ ! -f debug.keystore ]; then
-            keytool -genkeypair -v \
-              -keystore debug.keystore \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-          fi
-
-      - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace
-
-      - name: Upload Debug APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: healthbridge-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          if
