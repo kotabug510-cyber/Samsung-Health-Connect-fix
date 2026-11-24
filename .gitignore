@@ -1,0 +1,25 @@
+.gradle/
+build/
+app/build/
+samsung-sdk-stubs/build/
+local.properties
+*.keystore
+*.jks
+.env
+.kotlin/
+.DS_Store
+*.iml
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/captures
+.externalNativeBuild
+.cxx
+
+# Keep Samsung Health Data SDK AAR tracked in app/libs/
+!app/libs/
+!app/libs/*.aar
+!app/libs/*.jar

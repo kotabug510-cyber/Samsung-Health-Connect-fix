@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">HealthBridge</string>
+    <string name="app_tagline">Samsung Health to Health Connect Direct Bridge</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_categories">Categories</string>
+    <string name="nav_logs">Sync Log</string>
+    <string name="action_sync_now">Sync Now (24h)</string>
+    <string name="action_backfill_7d">Backfill 7d</string>
+    <string name="action_backfill_30d">Backfill 30d</string>
+    <string name="action_grant_permissions">Grant Access</string>
+    <string name="action_reconnect">Check Status</string>
+    <string name="privacy_rationale_title">Health Connect Permissions Rationale</string>
+    <string name="privacy_rationale_body">HealthBridge reads health and fitness telemetry directly from Samsung Health on your device via the Samsung Health Data SDK and writes deduplicated records directly into Android Health Connect. Zero data is transmitted to external servers, third-party clouds, or analytics services—all syncing occurs 100% locally on your phone.</string>
+    <string name="dev_mode_title">Enable Samsung Health Developer Mode</string>
+    <string name="dev_mode_instructions">1. Open Samsung Health on your device.\n2. Go to Settings → About Samsung Health.\n3. Tap the version number 10 times until Developer Mode unlocks.\n4. Enable "Developer mode (Samsung Health Data SDK)".\n5. Return here and tap Grant Access.</string>
+</resources>

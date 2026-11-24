@@ -1,0 +1,8 @@
+{
+  "name": "HealthBridge",
+  "description": "Direct replacement bridge syncing Samsung Health Data SDK metrics to Android Health Connect with hourly step granularity, skin temperature, GPS workout routes, and deterministic upsert deduplication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
